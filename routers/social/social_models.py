@@ -50,3 +50,6 @@ class memoryIn(BaseModel):
     isAnonymous: bool
     pms: Union[int, None] = None
     photoUrl: list
+
+class follow_info(BaseModel):
+    stuid: str
