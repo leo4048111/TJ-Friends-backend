@@ -70,4 +70,23 @@ class postCommentIn(BaseModel):
     content: str
     postId: int
 
+
+class userIdIn(BaseModel):
+    userId: str
+
+
+class sendMessageIn(BaseModel):
+    userId: str
+    text: str
+    image: str
+
+
+class deleteMessageIn(BaseModel):
+    messageId: int
+
+
+class recallMessageIn(BaseModel):
+    messageId: int
+
+
     

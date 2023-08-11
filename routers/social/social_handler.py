@@ -193,7 +193,7 @@ def sendRoomMessage_handler(r: roomMessage, db: Session = Depends(get_db), curre
 
     return {"code": 0, "msg": "success", "data": data}
 
-async def leaveRoom_handler(r: leaveRoomInfo, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def leaveRoom_handler(r: leaveRoomInfo, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     # 房主永远是user_list的首元素
     # 可以移除的情况: 房主移除别人, 普通用户自己退出
     # 当房主退出时, 需要移交房主, 直接使得下一个顺位的人成为房主
@@ -935,3 +935,162 @@ def deleteComment_handler(info: deleteCommentInfo, db: Session = Depends(get_db)
         "msg": "删除成功",
         "data": data
     }
+
+# -- chat --
+def getLastMessage_handler(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    msgs_dict = get_to_messages_by_id(db=db, current_user=current_user)
+    data = []
+    for from_id, value in msgs_dict.items():
+        e = {}
+        e["message"] = value[-1]['text'] if value[-1]['text'] != "" else "[图片]"
+        e["timeStamp"] = value[-1]['time']
+
+        e["senderUserId"] = from_id
+        try:
+            db_user = crud.get_user(db=db, stu_id=from_id)
+            db_user_add = crud.get_user_add_info(db=db, stu_id=from_id)
+            e["senderName"] = db_user.name
+            e["senderAvatar"] = db_user_add.avatar
+        except:
+            e["senderName"] = "this user has no name"
+            e["senderAvatar"] = "this user has no avatar"
+
+        e["unreadedNum"] = 0
+        for i in value:
+            if i['is_read'] == 0:
+                e["unreadedNum"] += 1
+
+        data.append(e)
+
+    return {"code": 0, "msg": "success", "data": data}
+
+def sendMessage_handler(r: sendMessageIn, db: Session = Depends(get_db),
+                      current_user: models.User = Depends(get_current_user)):
+    t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    db_message = crud.create_message(db=db, from_id=current_user.stu_id, to_id=r.userId, text=r.text, image=r.image,
+                                     time=t, is_read=0, is_sender_delete=0, is_receiver_delete=0, is_recall=0)
+    return {"code": 0, "msg": "success", "data": {"id": db_message.id}}
+
+def receiveAllMessages_handler(userId: str, db: Session = Depends(get_db),
+                             current_user: models.User = Depends(get_current_user)):
+    msgs = get_conversion_messages(db=db, current_user=current_user, userId=userId)
+
+    data = []
+    for i in msgs:
+        is_received = (i.to_id == current_user.stu_id)
+
+        r = {}
+        r["id"] = i.id
+        r["text"] = i.text
+        r["image"] = i.image
+        r["time"] = i.time
+        r["isReceived"] = is_received
+        r["isRecall"] = i.is_recall
+
+        # 发送消息者信息
+        db_user = crud.get_user(db=db, stu_id=userId)
+        db_user_add_info = crud.get_user_add_info(db=db, stu_id=userId)
+        if db_user:
+            if db_user.user_name_perm:
+                r["userNikeName"] = db_user.user_name
+        if db_user_add_info:
+            if db_user_add_info.avatar_perm:
+                r["userAvatar"] = db_user_add_info.avatar
+
+        data.append(r)
+
+    return {"code": 0, "msg": "success", "data": data}
+
+def deleteMessages_handler(r: userIdIn, db: Session = Depends(get_db),
+                        current_user: models.User = Depends(get_current_user)):
+    msgs = get_conversion_messages(db=db, current_user=current_user, userId=r.userId)
+
+    for i in msgs:
+        if i.to_id == current_user.stu_id:
+            crud.update_message(db=db, id=i.id, from_id=i.from_id, to_id=i.to_id, text=i.text, image=i.image,
+                                time=i.time, is_read=i.is_read, is_sender_delete=i.is_sender_delete,
+                                is_receiver_delete=1, is_recall=i.is_recall)
+        elif i.from_id == current_user.stu_id:
+            crud.update_message(db=db, id=i.id, from_id=i.from_id, to_id=i.to_id, text=i.text, image=i.image,
+                                time=i.time, is_read=i.is_read, is_sender_delete=1,
+                                is_receiver_delete=i.is_receiver_delete, is_recall=i.is_recall)
+
+    return {"code": 0, "msg": "success", "data": {}}
+
+def readMessageInfo_handler(r: userIdIn, db: Session = Depends(get_db),
+                          current_user: models.User = Depends(get_current_user)):
+    msgs = get_conversion_messages(db=db, current_user=current_user, userId=r.userId)
+    for i in msgs:
+        if (current_user.stu_id == i.to_id):
+            crud.update_message(
+                db=db,
+                id=i.id,
+                from_id=i.from_id,
+                to_id=i.to_id,
+                text=i.text,
+                image=i.image,
+                time=i.time,
+                is_read=1,
+                is_sender_delete=i.is_sender_delete,
+                is_receiver_delete=i.is_receiver_delete,
+                is_recall=i.is_recall
+            )
+    return {"code": 0, "msg": "success", "data": {}}
+
+def receiveUnreadMessages_handler(userId: str, db: Session = Depends(get_db),
+                                current_user: models.User = Depends(get_current_user)):
+    msgs = get_conversion_messages(db=db, current_user=current_user, userId=userId)
+    data = []
+    for i in msgs:
+        if i.to_id == current_user.stu_id:
+            if not i.is_read:
+                
+                r = {}
+                r["text"] = i.text
+                r["image"] = i.image
+                r["time"] = i.time
+                r["id"] = i.id
+                r["isRecall"] = i.is_recall
+
+                # 发送消息者信息
+                db_user = crud.get_user(db=db, stu_id=userId)
+                db_user_add_info = crud.get_user_add_info(db=db, stu_id=userId)
+                if db_user:
+                    if db_user.user_name_perm:
+                        r["userNikeName"] = db_user.user_name
+                if db_user_add_info:
+                    if db_user_add_info.avatar_perm:
+                        r["userAvatar"] = db_user_add_info.avatar
+
+                data.append(r)
+
+    return {"code": 0, "msg": "success", "data": data}
+
+def deleteMessage_handler(r: deleteMessageIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_msg = crud.get_message_by_id(db=db, id=r.messageId) # 根据messageId从数据库获取msg
+
+    if not db_msg:
+        return {"code": 2, "masg": "该消息不存在", "data": {}}
+
+    # 检查权限
+    if (current_user.stu_id == db_msg.from_id or current_user.stu_id == db_msg.to_id):
+        if current_user.stu_id == db_msg.from_id:
+            crud.update_message(db=db, id=db_msg.id, from_id=db_msg.from_id, to_id=db_msg.to_id, text=db_msg.text, image=db_msg.image, time=db_msg.time, is_read=db_msg.is_read, is_sender_delete=1, is_receiver_delete=db_msg.is_receiver_delete, is_recall=db_msg.is_recall) # 发送者删除
+        else:
+            crud.update_message(db=db, id=db_msg.id, from_id=db_msg.from_id, to_id=db_msg.to_id, text=db_msg.text, image=db_msg.image, time=db_msg.time, is_read=db_msg.is_read, is_sender_delete=db_msg.is_sender_delete, is_receiver_delete=1, is_recall=db_msg.is_recall) # 接受者删除
+        return {"code": 0, "msg": "删除成功", "data": {}}
+    else:
+        return {"code": 1, "msg": "该消息非当前用户的消息", "data": {}}
+    
+def recallMessage_handler(r: recallMessageIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_msg = crud.get_message_by_id(db=db, id=r.messageId) # 根据messageId从数据库获取msg
+
+    if not db_msg:
+        return {"code": 2, "masg": "该消息不存在", "data": {}}
+
+    # 检查权限
+    if current_user.stu_id == db_msg.from_id:
+        crud.update_message(db=db, id=db_msg.id, from_id=db_msg.from_id, to_id=db_msg.to_id, text=db_msg.text, image=db_msg.image, time=db_msg.time, is_read=db_msg.is_read, is_sender_delete=db_msg.is_sender_delete, is_receiver_delete=db_msg.is_receiver_delete, is_recall=1)
+        return {"code": 0, "msg": "撤回成功", "data":{}}
+    else:
+        return {"code": 1, "msg": "该消息非当前用户发出的消息", "data":{}}

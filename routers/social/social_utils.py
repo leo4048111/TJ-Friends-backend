@@ -66,3 +66,25 @@ def translate_type(typ):
         return "关注了你"
     else:
         return "type错误"
+    
+def get_to_messages_by_id(db, current_user):
+    msgs = crud.get_all_messages_by_to_id(db=db, to_id=current_user.stu_id)
+    msgs_dict = {}
+    for i in msgs:
+        if i.from_id in msgs_dict.keys():
+            msgs_dict[i.from_id].append({"text": i.text, "image": i.image, "time": i.time, "is_read": i.is_read, "isRecall": i.is_recall})
+        else:
+            msgs_dict[i.from_id] = [{"text": i.text, "image": i.image, "time": i.time, "is_read": i.is_read, "isRecall": i.is_recall}]
+    return msgs_dict
+
+
+def get_conversion_messages(db, current_user, userId):
+    msgs_receive = list(filter(lambda x: x.is_receiver_delete == 0,
+                               crud.get_all_messages_by_to_id_and_from_id(db=db, from_id=userId,
+                                                                          to_id=current_user.stu_id)))
+    msgs_send = list(filter(lambda x: x.is_sender_delete == 0,
+                            crud.get_all_messages_by_to_id_and_from_id(db=db, from_id=current_user.stu_id,
+                                                                       to_id=userId)))
+    msgs = msgs_receive + msgs_send
+    msgs.sort(key=lambda x: x.time, reverse=False)
+    return msgs
