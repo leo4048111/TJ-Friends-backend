@@ -57,16 +57,16 @@ async def sendRoomMessage(r: roomMessage, db: Session = Depends(get_db), current
 # 从房间移除一个用户
 @router.post("/leaveRoom")
 async def leaveRoom(r: leaveRoomInfo, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    leaveRoom_handler(r=r, db=db, current_user=current_user)
+    return leaveRoom_handler(r=r, db=db, current_user=current_user)
 
 
 # 更新视频进度
 @router.post("/updateProgress")
 async def updateProgress(r: roomVideo, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    updateProgress_handler(r=r, db=db, current_user=current_user)
+    return updateProgress_handler(r=r, db=db, current_user=current_user)
 
 
 # 获取当前视频进度
 @router.get("/getProgress")
 async def getProgress(roomId: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    getProgress_handler(roomId=roomId, db=db, current_user=current_user)
+    return getProgress_handler(roomId=roomId, db=db, current_user=current_user)

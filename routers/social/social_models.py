@@ -44,3 +44,9 @@ class ImageRequest(BaseModel):
 class noticeIn(BaseModel):
     noticeId: int
     typ: str
+
+class memoryIn(BaseModel):
+    postContent: str
+    isAnonymous: bool
+    pms: Union[int, None] = None
+    photoUrl: list
