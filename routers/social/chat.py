@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends
-from database import crud, models
+from database import models
 from sqlalchemy.orm import Session
 from dependencies import get_db, get_current_user
-import time
 
 from routers.social.social_models import sendMessageIn, userIdIn, deleteMessageIn, recallMessageIn
 from routers.social.social_handler import getLastMessage_handler, sendMessage_handler, receiveAllMessages_handler, \

@@ -5,7 +5,7 @@ import base64
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from starlette.responses import FileResponse
-from dependencies import get_db, get_current_user, canSeeThisMemory, DEFAULT_ROOM_PASSWORD, IMAGE_DIR, AUTH_USERNAME
+from dependencies import canSeeThisMemory, DEFAULT_ROOM_PASSWORD, IMAGE_DIR, AUTH_USERNAME
 
 from database import models, crud
 from routers.social.social_models import *
@@ -55,7 +55,7 @@ def getAllRooms_handler(db: Session, current_user: models.User):
             data.append(e)
     return { "code": code, "msg": msg, "data": data }
 
-def joinRooms_handler(r: joinRoom, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def joinRooms_handler(r: joinRoom, db: Session, current_user: models.User):
     room = crud.get_room_by_roomid(db=db, room_id=r.roomId)
     if not room:
         return { "code": 1, "msg": "房间不存在", "data":{} }
@@ -70,7 +70,7 @@ def joinRooms_handler(r: joinRoom, db: Session = Depends(get_db), current_user: 
     data = getRoomInfoById(roomId=r.roomId, db=db)
     return { "code": 0, "msg": "success", "data": data }
 
-def editRoom_handler(r: editRoomInfo, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def editRoom_handler(r: editRoomInfo, db: Session, current_user: models.User):
     room = crud.get_room_by_roomid(db=db, room_id=r.roomId)
     if not room:
         return { "code": 1, "msg": "房间不存在", "data":{} }
@@ -88,7 +88,7 @@ def editRoom_handler(r: editRoomInfo, db: Session = Depends(get_db), current_use
     )
     return { "code": 0, "msg": "修改成功", "data": data }
 
-def receiveAllRoomMessages_handler(roomId: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def receiveAllRoomMessages_handler(roomId: str, db: Session, current_user: models.User):
     db_room = crud.get_room_by_roomid(db=db, room_id=int(roomId))
     if not db_room:
         return {"code": 1, "msg": "房间不存在", "data": {}}
@@ -129,7 +129,7 @@ def receiveAllRoomMessages_handler(roomId: str, db: Session = Depends(get_db), c
 
     return {"code": 0, "msg": "success", "data": data}
 
-def receiveRoomMessages_handler(roomId: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def receiveRoomMessages_handler(roomId: str, db: Session, current_user: models.User):
     db_room = crud.get_room_by_roomid(db=db, room_id=int(roomId))
     if not db_room:
         return {"code": 1, "msg": "房间不存在", "data": {}}
@@ -174,7 +174,7 @@ def receiveRoomMessages_handler(roomId: str, db: Session = Depends(get_db), curr
 
     return {"code": 0, "msg": "success", "data": data}
     
-def sendRoomMessage_handler(r: roomMessage, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def sendRoomMessage_handler(r: roomMessage, db: Session, current_user: models.User):
     db_room = crud.get_room_by_roomid(db=db, room_id=str(r.roomId))
     if not db_room:
         return {"code": 1, "msg": "房间不存在", "data": {}}
@@ -193,7 +193,7 @@ def sendRoomMessage_handler(r: roomMessage, db: Session = Depends(get_db), curre
 
     return {"code": 0, "msg": "success", "data": data}
 
-def leaveRoom_handler(r: leaveRoomInfo, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def leaveRoom_handler(r: leaveRoomInfo, db: Session, current_user: models.User):
     # 房主永远是user_list的首元素
     # 可以移除的情况: 房主移除别人, 普通用户自己退出
     # 当房主退出时, 需要移交房主, 直接使得下一个顺位的人成为房主
@@ -230,7 +230,7 @@ def leaveRoom_handler(r: leaveRoomInfo, db: Session = Depends(get_db), current_u
     else:
         return { "code": 0, "msg": "房间已删除", "data": {} }
     
-def updateProgress_handler(r: roomVideo, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def updateProgress_handler(r: roomVideo, db: Session, current_user: models.User):
     db_room = crud.get_room_by_roomid(db=db, room_id=r.roomId)
     if not db_room:
         return {"code": 1, "msg": "对应房间不存在", "data": {}}
@@ -239,7 +239,7 @@ def updateProgress_handler(r: roomVideo, db: Session = Depends(get_db), current_
     db_room = crud.update_room_video_progress(db=db, room_id=r.roomId, video_pos_millis=r.positionMillis, video_play=r.shouldPlay, video_cur_time=r.curTime)
     return {"code": 0, "msg": "success", "data": {}}
 
-def getProgress_handler(roomId: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def getProgress_handler(roomId: str, db: Session, current_user: models.User):
     db_room = crud.get_room_by_roomid(db=db, room_id=roomId)
     if not db_room:
         return {"code": 1, "msg": "对应房间不存在", "data": {}}
@@ -251,7 +251,7 @@ def getProgress_handler(roomId: str, db: Session = Depends(get_db), current_user
     return {"code": 0, "msg": "success", "data": data}
 
 # -- pics --
-def upload_file_handler(r: ImageRequest, current_user: models.User = Depends(get_current_user)):
+def upload_file_handler(r: ImageRequest, current_user: models.User):
     ext = r.fileName.split(".")[-1]
     fileName = f"{random_filename()}.{ext}"
     filepath = os.path.join(IMAGE_DIR, fileName)
@@ -267,7 +267,7 @@ def show_image_handler(filename: str):
         return {"error": "File not found"}
     
 # -- notice --
-def getNoticeNum_handler(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def getNoticeNum_handler(db: Session, current_user: models.User):
     data = {}
     
     # get all the lists
@@ -284,7 +284,7 @@ def getNoticeNum_handler(db: Session = Depends(get_db), current_user: models.Use
 
     return { "code": 0, "msg": "success", "data": data }
 
-def getAllSystemNotice_handler(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def getAllSystemNotice_handler(db: Session, current_user: models.User):
     code = 0
     msg = "获取成功"
     data = []
@@ -309,7 +309,7 @@ def getAllSystemNotice_handler(db: Session = Depends(get_db), current_user: mode
     
     return { "code": code, "msg": msg, "data": data}
 
-def getNoticeByType_handler(typ: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def getNoticeByType_handler(typ: str, db: Session, current_user: models.User):
     code = 0
     msg = "success"
 
@@ -366,7 +366,7 @@ def getNoticeByType_handler(typ: str, db: Session = Depends(get_db), current_use
 
     return { "code": code, "msg": msg, "data": data }
 
-def deleteNotice_handler(r: noticeIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def deleteNotice_handler(r: noticeIn, db: Session, current_user: models.User):
     if r.typ == "like":
         crud.delete_likenotice(db=db, id=r.noticeId)
     elif r.typ == "repo":
@@ -380,7 +380,7 @@ def deleteNotice_handler(r: noticeIn, db: Session = Depends(get_db), current_use
 
     return { "code": 0, "msg": "success", "data": {} }
 
-def readNoticeByType_handler(typ: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def readNoticeByType_handler(typ: str, db: Session, current_user: models.User):
     code = 0
     msg = "success"
 
@@ -409,7 +409,7 @@ def readNoticeByType_handler(typ: str, db: Session = Depends(get_db), current_us
     return { "code": 0, "msg": "success", "data": {} }
 
 # -- memories --
-def getMemories_handler(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def getMemories_handler(db: Session, current_user: models.User):
     code = 1
     msg = "没有动态"
     data = []
@@ -458,7 +458,7 @@ def getMemories_handler(db: Session = Depends(get_db), current_user: models.User
     
     return { "code": code, "msg": msg, "data": data }
 
-def getMemoryDetail_handler(postId: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def getMemoryDetail_handler(postId: str, db: Session, current_user: models.User):
     code = 1
     msg = "动态号错误"
     data = {}
@@ -519,7 +519,7 @@ def getMemoryDetail_handler(postId: str, db: Session = Depends(get_db), current_
 
     return { "code": code, "msg": msg, "data": data }
 
-def postMemory_handler(r: memoryIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def postMemory_handler(r: memoryIn, db: Session, current_user: models.User):
     data = {}
 
     photo_list = []
@@ -535,7 +535,7 @@ def postMemory_handler(r: memoryIn, db: Session = Depends(get_db), current_user:
 
     return { "code": 0, "msg": "success", "data": data }
 
-def updateMemory_handler(postId: str, r: memoryIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def updateMemory_handler(postId: str, r: memoryIn, db: Session, current_user: models.User):
     # 验证是否存在该动态
     db_memory = crud.get_memory(db=db, post_id=postId)
     if not db_memory:
@@ -558,7 +558,7 @@ def updateMemory_handler(postId: str, r: memoryIn, db: Session = Depends(get_db)
 
     return { "code": 0, "msg": "success", "data": {} }
 
-def deleteMemory_handler(postId: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def deleteMemory_handler(postId: str, db: Session, current_user: models.User):
     # 验证是否存在该动态
     db_memory = crud.get_memory(db=db, post_id=postId)
     if not db_memory:
@@ -576,7 +576,7 @@ def deleteMemory_handler(postId: str, db: Session = Depends(get_db), current_use
 
     return {"code": 0, "msg": "success", "data": {}}
 
-def updateLikeMemory_handler(postId: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def updateLikeMemory_handler(postId: str, db: Session, current_user: models.User):
     # 验证是否存在该动态
     db_memory = crud.get_memory(db=db, post_id=postId)
     if not db_memory:
@@ -619,7 +619,7 @@ def updateLikeMemory_handler(postId: str, db: Session = Depends(get_db), current
     return { "code": 0, "msg": msg, "data": data }
 
 # -- follow --
-def follow_handler(info: follow_info, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def follow_handler(info: follow_info, db: Session, current_user: models.User):
     code = 0
     msg = {}
 
@@ -663,7 +663,7 @@ def follow_handler(info: follow_info, db: Session = Depends(get_db), current_use
         "db_follow": db_follow
     }
 
-def unfollow_handler(info: follow_info, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def unfollow_handler(info: follow_info, db: Session, current_user: models.User):
     code = 0
     msg = {}
 
@@ -703,7 +703,7 @@ def unfollow_handler(info: follow_info, db: Session = Depends(get_db), current_u
     }
 
 # -- draft --
-def getDrafts_handler(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def getDrafts_handler(db: Session, current_user: models.User):
     data = []
     draft_list = crud.get_drafts_by_stu_id(db=db, stu_id=current_user.stu_id)
     for i in draft_list:
@@ -725,7 +725,7 @@ def getDrafts_handler(db: Session = Depends(get_db), current_user: models.User =
             data.append(r)
     return {"code": 0, "msg": "success", "data": data}
 
-def createDraft_handler(r: draft, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def createDraft_handler(r: draft, db: Session, current_user: models.User):
     data = {}
     print(r.photoUrl)
     print(len(r.photoUrl))
@@ -759,7 +759,7 @@ def createDraft_handler(r: draft, db: Session = Depends(get_db), current_user: m
 
     return {"code": 0, "msg": "success", "data": data}
     
-def updateDraft_handler(r: draft, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def updateDraft_handler(r: draft, db: Session, current_user: models.User):
     if r.draftId == None:
         return {"code": 1, "msg": "draft id 缺失", "data": {}}
     elif crud.get_draft_by_id(db=db, id=r.draftId) == None:
@@ -791,7 +791,7 @@ def updateDraft_handler(r: draft, db: Session = Depends(get_db), current_user: m
 
     return {"code": 0, "msg": "success", "data": {}}
 
-def postDraft_handler(r: DraftId, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def postDraft_handler(r: DraftId, db: Session, current_user: models.User):
     db_draft = crud.get_draft_by_id(db=db, id=r.draftId)
 
     if db_draft == None:
@@ -806,7 +806,7 @@ def postDraft_handler(r: DraftId, db: Session = Depends(get_db), current_user: m
 
     return {"code": 0, "msg": "success", "data": {}}
 
-def getDraft_handler(draftId: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def getDraft_handler(draftId: str, db: Session, current_user: models.User):
     db_draft = crud.get_draft_by_id(db=db, id=draftId)
 
     if db_draft == None:
@@ -832,7 +832,7 @@ def getDraft_handler(draftId: str, db: Session = Depends(get_db), current_user: 
 
     return {"code": 0, "msg": "success", "data": data}
 
-def deleteDraft_handler(r: DraftId, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def deleteDraft_handler(r: DraftId, db: Session, current_user: models.User):
     draftId = r.draftId
     
     db_draft = crud.get_draft_by_id(db=db, id = draftId)
@@ -844,7 +844,7 @@ def deleteDraft_handler(r: DraftId, db: Session = Depends(get_db), current_user:
         return {"code": 1, "msg": "该draftId对应的草稿不存在", "data": {}}
     
 # -- comments --
-def updateLikeComment_handler(commentId: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def updateLikeComment_handler(commentId: str, db: Session, current_user: models.User):
     # 验证是否存在该评论
     db_comment = crud.get_comment(db=db, comment_id=commentId)
     if not db_comment:
@@ -886,7 +886,7 @@ def updateLikeComment_handler(commentId: str, db: Session = Depends(get_db), cur
 
     return { "code": 0, "msg": msg, "data": data }
 
-def postComment_handler(r: postCommentIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def postComment_handler(r: postCommentIn, db: Session, current_user: models.User):
     # 查询是否存在postId对应的动态
     db_memory = crud.get_memory(db=db, post_id=r.postId)
     if not db_memory:
@@ -907,7 +907,7 @@ def postComment_handler(r: postCommentIn, db: Session = Depends(get_db), current
 
     return { "code": 0, "msg": "SUCCESS", "data": {} }
 
-def deleteComment_handler(info: deleteCommentInfo, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def deleteComment_handler(info: deleteCommentInfo, db: Session, current_user: models.User):
     
     db_comment = crud.get_comment(db = db, comment_id = info.comment_id)
     if not db_comment:
@@ -937,7 +937,7 @@ def deleteComment_handler(info: deleteCommentInfo, db: Session = Depends(get_db)
     }
 
 # -- chat --
-def getLastMessage_handler(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def getLastMessage_handler(db: Session, current_user: models.User):
     msgs_dict = get_to_messages_by_id(db=db, current_user=current_user)
     data = []
     for from_id, value in msgs_dict.items():
@@ -964,15 +964,15 @@ def getLastMessage_handler(db: Session = Depends(get_db), current_user: models.U
 
     return {"code": 0, "msg": "success", "data": data}
 
-def sendMessage_handler(r: sendMessageIn, db: Session = Depends(get_db),
-                      current_user: models.User = Depends(get_current_user)):
+def sendMessage_handler(r: sendMessageIn, db: Session,
+                      current_user: models.User):
     t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     db_message = crud.create_message(db=db, from_id=current_user.stu_id, to_id=r.userId, text=r.text, image=r.image,
                                      time=t, is_read=0, is_sender_delete=0, is_receiver_delete=0, is_recall=0)
     return {"code": 0, "msg": "success", "data": {"id": db_message.id}}
 
-def receiveAllMessages_handler(userId: str, db: Session = Depends(get_db),
-                             current_user: models.User = Depends(get_current_user)):
+def receiveAllMessages_handler(userId: str, db: Session,
+                             current_user: models.User):
     msgs = get_conversion_messages(db=db, current_user=current_user, userId=userId)
 
     data = []
@@ -1001,8 +1001,8 @@ def receiveAllMessages_handler(userId: str, db: Session = Depends(get_db),
 
     return {"code": 0, "msg": "success", "data": data}
 
-def deleteMessages_handler(r: userIdIn, db: Session = Depends(get_db),
-                        current_user: models.User = Depends(get_current_user)):
+def deleteMessages_handler(r: userIdIn, db: Session,
+                        current_user: models.User):
     msgs = get_conversion_messages(db=db, current_user=current_user, userId=r.userId)
 
     for i in msgs:
@@ -1017,8 +1017,8 @@ def deleteMessages_handler(r: userIdIn, db: Session = Depends(get_db),
 
     return {"code": 0, "msg": "success", "data": {}}
 
-def readMessageInfo_handler(r: userIdIn, db: Session = Depends(get_db),
-                          current_user: models.User = Depends(get_current_user)):
+def readMessageInfo_handler(r: userIdIn, db: Session,
+                          current_user: models.User):
     msgs = get_conversion_messages(db=db, current_user=current_user, userId=r.userId)
     for i in msgs:
         if (current_user.stu_id == i.to_id):
@@ -1037,8 +1037,8 @@ def readMessageInfo_handler(r: userIdIn, db: Session = Depends(get_db),
             )
     return {"code": 0, "msg": "success", "data": {}}
 
-def receiveUnreadMessages_handler(userId: str, db: Session = Depends(get_db),
-                                current_user: models.User = Depends(get_current_user)):
+def receiveUnreadMessages_handler(userId: str, db: Session,
+                                current_user: models.User):
     msgs = get_conversion_messages(db=db, current_user=current_user, userId=userId)
     data = []
     for i in msgs:
@@ -1066,7 +1066,7 @@ def receiveUnreadMessages_handler(userId: str, db: Session = Depends(get_db),
 
     return {"code": 0, "msg": "success", "data": data}
 
-def deleteMessage_handler(r: deleteMessageIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def deleteMessage_handler(r: deleteMessageIn, db: Session, current_user: models.User):
     db_msg = crud.get_message_by_id(db=db, id=r.messageId) # 根据messageId从数据库获取msg
 
     if not db_msg:
@@ -1082,7 +1082,7 @@ def deleteMessage_handler(r: deleteMessageIn, db: Session = Depends(get_db), cur
     else:
         return {"code": 1, "msg": "该消息非当前用户的消息", "data": {}}
     
-def recallMessage_handler(r: recallMessageIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def recallMessage_handler(r: recallMessageIn, db: Session, current_user: models.User):
     db_msg = crud.get_message_by_id(db=db, id=r.messageId) # 根据messageId从数据库获取msg
 
     if not db_msg:
@@ -1096,7 +1096,7 @@ def recallMessage_handler(r: recallMessageIn, db: Session = Depends(get_db), cur
         return {"code": 1, "msg": "该消息非当前用户发出的消息", "data":{}}
     
 # -- block --
-def blockUser_handler(r: BlockInfo, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def blockUser_handler(r: BlockInfo, db: Session, current_user: models.User):
     code = 0
     msg = ""
 
@@ -1136,7 +1136,7 @@ def blockUser_handler(r: BlockInfo, db: Session = Depends(get_db), current_user:
         "data": block
     }
 
-def unBlockUser_handler(r: BlockInfo, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def unBlockUser_handler(r: BlockInfo, db: Session, current_user: models.User):
     code = 0
     msg = ""
 
@@ -1167,7 +1167,7 @@ def unBlockUser_handler(r: BlockInfo, db: Session = Depends(get_db), current_use
         "data": block
     }
 
-def getBlockList_handler(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def getBlockList_handler(db: Session, current_user: models.User):
     block_list = crud.get_blocked_users(db=db, user_id=current_user.stu_id)
     return {
         "code": 0,

@@ -1,10 +1,9 @@
 import uuid
 
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from database import crud
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from dependencies import pwd_context
 
 # -- room --
 def get_password_hash(password):

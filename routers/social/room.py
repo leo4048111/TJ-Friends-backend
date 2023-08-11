@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends
-from database import crud, models
+from database import models
 from dependencies import get_db, get_current_user, DEFAULT_ROOM_PASSWORD
 from sqlalchemy.orm import Session
-import time
 
 from routers.social.social_models import room, joinRoom, editRoomInfo, roomMessage, leaveRoomInfo, roomVideo
 from routers.social.social_utils import getRoomInfoById
