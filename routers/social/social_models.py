@@ -63,3 +63,11 @@ class draft(BaseModel):
 
 class DraftId(BaseModel):
     draftId: str
+
+class deleteCommentInfo(BaseModel):
+    comment_id: str
+class postCommentIn(BaseModel):
+    content: str
+    postId: int
+
+    
