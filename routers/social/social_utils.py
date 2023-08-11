@@ -1,3 +1,5 @@
+import uuid
+
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from database import crud
@@ -36,3 +38,10 @@ def getRoomInfoById(roomId: str, db: Session):
     data['roomDescription'] = room.description
     data['members'] = getMembers(room.user_list)
     return data
+
+# pics
+# 定义一个生成随机文件名的函数
+def random_filename():
+    return str(uuid.uuid4())
+
+IP = '119.3.178.68:8000'

@@ -1,12 +1,15 @@
 import time
+import os
+import base64
 
 from sqlalchemy.orm import Session
 from fastapi import Depends
-from dependencies import get_db, get_current_user, DEFAULT_ROOM_PASSWORD
+from starlette.responses import FileResponse
+from dependencies import get_db, get_current_user, DEFAULT_ROOM_PASSWORD, IMAGE_DIR
 
 from database import models, crud
-from social_models import room, joinRoom, editRoomInfo, roomMessage, leaveRoomInfo, roomVideo
-from social_utils import get_password_hash, verify_password, getRoomInfoById
+from routers.social.social_models import room, joinRoom, editRoomInfo, roomMessage, leaveRoomInfo, roomVideo, ImageRequest
+from routers.social.social_utils import get_password_hash, verify_password, getRoomInfoById, random_filename
 
 # -- room --
 def createRoom_handler(r: room, db: Session, current_user: models.User):
@@ -246,3 +249,18 @@ def getProgress_handler(roomId: str, db: Session = Depends(get_db), current_user
     data["shouldPlay"] = bool(db_room.video_play)
     data["positionMillis"] = db_room.video_pos_millis
     return {"code": 0, "msg": "success", "data": data}
+
+def upload_file_handler(r: ImageRequest, current_user: models.User = Depends(get_current_user)):
+    ext = r.fileName.split(".")[-1]
+    fileName = f"{random_filename()}.{ext}"
+    filepath = os.path.join(IMAGE_DIR, fileName)
+    with open(filepath, "wb") as f:
+        f.write(base64.b64decode(r.file.split(',')[1]))
+    return { "code": 0, "msg": "success", "data": {"url": f"/images/{fileName}"} }
+
+def show_image_handler(filename: str):
+    filepath = os.path.join(IMAGE_DIR, filename)
+    if os.path.isfile(filepath):
+        return FileResponse(filepath)
+    else:
+        return {"error": "File not found"}

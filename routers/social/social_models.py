@@ -36,3 +36,7 @@ class roomVideo(BaseModel):
     shouldPlay: bool
     curTime: str
     roomId: str
+
+class ImageRequest(BaseModel):
+    file: str
+    fileName: str

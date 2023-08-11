@@ -4,9 +4,9 @@ from dependencies import get_db, get_current_user, DEFAULT_ROOM_PASSWORD
 from sqlalchemy.orm import Session
 import time
 
-from social_models import room, joinRoom, editRoomInfo, roomMessage, leaveRoomInfo, roomVideo
-from social_utils import getRoomInfoById
-from social_handler import createRoom_handler, getAllRooms_handler, \
+from routers.social.social_models import room, joinRoom, editRoomInfo, roomMessage, leaveRoomInfo, roomVideo
+from routers.social.social_utils import getRoomInfoById
+from routers.social.social_handler import createRoom_handler, getAllRooms_handler, \
 joinRooms_handler, editRoom_handler, receiveAllRoomMessages_handler, \
 receiveRoomMessages_handler, sendRoomMessage_handler, leaveRoom_handler, \
 updateProgress_handler, getProgress_handler
