@@ -53,3 +53,13 @@ class memoryIn(BaseModel):
 
 class follow_info(BaseModel):
     stuid: str
+
+class draft(BaseModel):
+    postContent: str
+    photoUrl: list
+    pms: int
+    isAnonymous: int
+    draftId: Union[int, None] = None
+
+class DraftId(BaseModel):
+    draftId: str
