@@ -40,3 +40,7 @@ class roomVideo(BaseModel):
 class ImageRequest(BaseModel):
     file: str
     fileName: str
+
+class noticeIn(BaseModel):
+    noticeId: int
+    typ: str

@@ -45,3 +45,24 @@ def random_filename():
     return str(uuid.uuid4())
 
 IP = '119.3.178.68:8000'
+
+# notice
+def get_unread_num(notice_list):
+    ret = 0
+    for i in notice_list:
+        if i.read == 0:
+            ret += 1
+    return ret
+
+
+def translate_type(typ):
+    if typ == "like":
+        return "点赞了你"
+    elif typ == "comment":
+        return "评论了你"
+    elif typ == "repo":
+        return "转发了你"
+    elif typ == "follow":
+        return "关注了你"
+    else:
+        return "type错误"

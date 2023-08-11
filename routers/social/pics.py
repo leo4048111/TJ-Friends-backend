@@ -1,12 +1,8 @@
-import base64
-import os
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
 from database import models
 from dependencies import IMAGE_DIR, get_current_user
 
 from routers.social.social_models import ImageRequest
-from routers.social.social_utils import random_filename
 from routers.social.social_handler import upload_file_handler, show_image_handler
 
 router = APIRouter()
