@@ -88,5 +88,7 @@ class deleteMessageIn(BaseModel):
 class recallMessageIn(BaseModel):
     messageId: int
 
+class BlockInfo(BaseModel):
+    userId: str
 
     
